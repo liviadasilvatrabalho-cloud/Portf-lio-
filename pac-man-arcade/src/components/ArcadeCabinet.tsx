@@ -46,36 +46,6 @@ export const ArcadeCabinet: React.FC<ArcadeCabinetProps> = ({ embedded = false, 
   const [isHighScoresOpen, setIsHighScoresOpen] = useState(false);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [isTouchDevice, setIsTouchDevice] = useState(false);
-  const [localIP, setLocalIP] = useState('127.0.0.1');
-
-  // Detect PC's local IP address so the phone can reach it
-  useEffect(() => {
-    const detectIP = async () => {
-      try {
-        const pc = new RTCPeerConnection({ iceServers: [] });
-        pc.createDataChannel('');
-        const offer = await pc.createOffer();
-        await pc.setLocalDescription(offer);
-        await new Promise<void>((resolve) => {
-          const timeout = setTimeout(resolve, 3000);
-          pc.onicecandidate = (e) => {
-            if (e.candidate) {
-              const match = e.candidate.candidate.match(/(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})/);
-              if (match && !match[1].startsWith('127.')) {
-                setLocalIP(match[1]);
-                clearTimeout(timeout);
-                resolve();
-              }
-            }
-          };
-        });
-        pc.close();
-      } catch {
-        // fallback to 127.0.0.1
-      }
-    };
-    detectIP();
-  }, []);
 
   // Stable ref for remote input handler (avoids stale closures)
   const handleRemoteInputRef = useRef<(action: string) => void>(() => {});
@@ -118,8 +88,8 @@ export const ArcadeCabinet: React.FC<ArcadeCabinetProps> = ({ embedded = false, 
     onInputReceived: onRemoteInput,
   });
 
-  // QR code URL: uses PC's local IP so phone can reach it
-  const controllerUrl = `http://${localIP}:5173/?controle=true&room=${roomId}`;
+  // QR code URL: uses current origin (works on both dev and Vercel)
+  const controllerUrl = `${window.location.origin}/?controle=true&room=${roomId}`;
 
   // Broadcast game state to controller
   useEffect(() => {

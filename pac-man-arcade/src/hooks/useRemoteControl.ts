@@ -7,12 +7,14 @@ interface UseRemoteControlOptions {
   onInputReceived?: (action: RemoteInputAction) => void;
 }
 
+// Public WebSocket relay — works from any device, no server needed
+const RELAY_URL = 'wss://socketsbay.com/wss/v2/1/demo/';
+
 export function useRemoteControl({
   role,
   roomIdOverride,
   onInputReceived,
 }: UseRemoteControlOptions) {
-  // Generate or get Room ID
   const [roomId, setRoomId] = useState<string>(() => {
     if (roomIdOverride) return roomIdOverride;
 
@@ -48,7 +50,7 @@ export function useRemoteControl({
     onInputReceivedRef.current = onInputReceived;
   }, [onInputReceived]);
 
-  // ============ BroadcastChannel: PRIMARY (works offline, same browser) ============
+  // ============ BroadcastChannel: same-browser communication ============
   useEffect(() => {
     if (!roomId) return;
 
@@ -70,12 +72,10 @@ export function useRemoteControl({
           }
         } else if (type === 'PING') {
           if (role === 'GAME') {
-            // Game host responds to controller pings
             bc.postMessage({ type: 'PONG', roomId, role: 'GAME' });
             setControllerConnected(true);
             setControllerCount(prev => Math.max(1, prev));
           } else if (role === 'CONTROLLER') {
-            // Controller responds to game pings
             bc.postMessage({ type: 'PONG', roomId, role: 'CONTROLLER' });
             setHasHost(true);
           }
@@ -89,11 +89,9 @@ export function useRemoteControl({
         }
       };
 
-      // Announce presence
       bc.postMessage({ type: 'PING', role, roomId });
-
-    } catch (e) {
-      console.warn('BroadcastChannel not available:', e);
+    } catch {
+      // BroadcastChannel not supported
     }
 
     return () => {
@@ -102,91 +100,74 @@ export function useRemoteControl({
     };
   }, [roomId, role]);
 
-  // ============ WebSocket: OPTIONAL FALLBACK (for cross-device) ============
+  // ============ WebSocket: cross-device via public relay ============
   useEffect(() => {
     if (!roomId) return;
 
     let isMounted = true;
     let reconnectTimer: ReturnType<typeof setTimeout> | null = null;
-    let connectionTimeout: ReturnType<typeof setTimeout> | null = null;
 
     const connectWebSocket = () => {
       try {
-        const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-        const wsHost = window.location.hostname;
-        const wsUrl = `${protocol}//${wsHost}:5174`;
-
-        const ws = new WebSocket(wsUrl);
+        const ws = new WebSocket(`${RELAY_URL}${roomId}`);
         socketRef.current = ws;
-
-        // Timeout: if connection doesn't open within 5 seconds, retry
-        connectionTimeout = setTimeout(() => {
-          if (ws.readyState !== WebSocket.OPEN) {
-            ws.close();
-          }
-        }, 5000);
 
         ws.onopen = () => {
           if (!isMounted) return;
-          clearTimeout(connectionTimeout!);
           setIsConnected(true);
-          ws.send(JSON.stringify({ type: 'JOIN_ROOM', roomId, role }));
+          // Announce presence
+          ws.send(JSON.stringify({ type: 'PING', role, roomId }));
         };
 
         ws.onmessage = (event) => {
           if (!isMounted) return;
           try {
             const data = JSON.parse(event.data);
-            switch (data.type) {
-              case 'ROOM_JOINED':
-                if (role === 'GAME') {
-                  setControllerConnected(data.controllerConnected || false);
-                  setControllerCount(data.controllerCount || 0);
-                } else {
-                  setHasHost(data.hasHost || false);
-                  if (data.lastGameState) setLatestGameState(data.lastGameState);
-                }
-                break;
-              case 'CONTROLLER_STATUS':
-                if (role === 'GAME') {
-                  setControllerConnected(data.connected);
-                  setControllerCount(data.count || (data.connected ? 1 : 0));
-                }
-                break;
-              case 'INPUT':
-                if (role === 'GAME' && data.action) {
-                  setControllerConnected(true);
-                  if (onInputReceivedRef.current) {
-                    onInputReceivedRef.current(data.action as RemoteInputAction);
-                  }
-                }
-                break;
-              case 'GAME_STATE':
-                if (role === 'CONTROLLER' && data.payload) {
-                  setLatestGameState(data.payload);
-                  setHasHost(true);
-                }
-                break;
-              case 'HOST_DISCONNECTED':
-                if (role === 'CONTROLLER') setHasHost(false);
-                break;
+            const { type, action, payload, role: msgRole } = data;
+
+            if (type === 'INPUT' && role === 'GAME') {
+              if (action && onInputReceivedRef.current) {
+                setControllerConnected(true);
+                onInputReceivedRef.current(action as RemoteInputAction);
+              }
+            } else if (type === 'GAME_STATE' && role === 'CONTROLLER') {
+              if (payload) {
+                setLatestGameState(payload);
+                setHasHost(true);
+              }
+            } else if (type === 'PING') {
+              if (role === 'GAME' && msgRole === 'CONTROLLER') {
+                ws.send(JSON.stringify({ type: 'PONG', role: 'GAME', roomId }));
+                setControllerConnected(true);
+                setControllerCount(prev => Math.max(1, prev));
+              } else if (role === 'CONTROLLER' && msgRole === 'GAME') {
+                ws.send(JSON.stringify({ type: 'PONG', role: 'CONTROLLER', roomId }));
+                setHasHost(true);
+              }
+            } else if (type === 'PONG') {
+              if (role === 'GAME') {
+                setControllerConnected(true);
+                setControllerCount(prev => Math.max(1, prev));
+              } else if (role === 'CONTROLLER') {
+                setHasHost(true);
+              }
             }
-          } catch (err) {
-            console.error('WebSocket message error:', err);
+          } catch {
+            // ignore parse errors
           }
         };
 
         ws.onclose = () => {
           if (!isMounted) return;
           setIsConnected(false);
-          reconnectTimer = setTimeout(connectWebSocket, 5000);
+          reconnectTimer = setTimeout(connectWebSocket, 3000);
         };
 
         ws.onerror = () => {
-          // Silent — BroadcastChannel is the primary method
+          // Will reconnect on close
         };
       } catch {
-        reconnectTimer = setTimeout(connectWebSocket, 5000);
+        reconnectTimer = setTimeout(connectWebSocket, 3000);
       }
     };
 
@@ -194,7 +175,6 @@ export function useRemoteControl({
 
     return () => {
       isMounted = false;
-      if (connectionTimeout) clearTimeout(connectionTimeout);
       if (reconnectTimer) clearTimeout(reconnectTimer);
       if (socketRef.current) {
         socketRef.current.close();
@@ -203,14 +183,12 @@ export function useRemoteControl({
     };
   }, [roomId, role]);
 
-  // ============ Send Input: BroadcastChannel + WebSocket ============
+  // ============ Send Input ============
   const sendInput = useCallback(
     (action: RemoteInputAction) => {
-      // BroadcastChannel (instant, works offline)
       if (broadcastRef.current) {
         broadcastRef.current.postMessage({ type: 'INPUT', roomId, action });
       }
-      // WebSocket (cross-device fallback)
       if (socketRef.current && socketRef.current.readyState === WebSocket.OPEN) {
         socketRef.current.send(JSON.stringify({ type: 'INPUT', roomId, action }));
       }
@@ -218,7 +196,7 @@ export function useRemoteControl({
     [roomId]
   );
 
-  // ============ Send Game State: BroadcastChannel + WebSocket ============
+  // ============ Send Game State ============
   const sendGameState = useCallback(
     (payload: RemoteGameStatePayload) => {
       if (broadcastRef.current) {

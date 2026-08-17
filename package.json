@@ -4,9 +4,8 @@
   "version": "0.0.0",
   "type": "module",
   "scripts": {
-    "dev": "concurrently \"npx tsx server/relay.ts\" \"vite --port=5173 --host=0.0.0.0 --strictPort\"",
+    "dev": "vite --port=5173 --host=0.0.0.0 --strictPort",
     "dev:vite": "vite --port=5173 --host=0.0.0.0 --strictPort",
-    "dev:relay": "npx tsx server/relay.ts",
     "build": "vite build",
     "preview": "vite preview",
     "clean": "rm -rf dist server.js",
