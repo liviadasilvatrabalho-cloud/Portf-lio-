@@ -1,0 +1,113 @@
+@import "tailwindcss";
+
+/* ==========================================================================
+   Universal Modern Sleek Scrollbar (Ultra-thin, Dark Glass, No Chunky White Tracks)
+   ========================================================================== */
+
+/* Standard Firefox & Modern CSS */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255, 255, 255, 0.18) transparent;
+}
+
+/* WebKit (Chrome, Safari, Edge, Electron, Android WebView) */
+::-webkit-scrollbar {
+  width: 5px;
+  height: 5px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent !important;
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.16);
+  border-radius: 9999px;
+  border: 1px solid transparent;
+  background-clip: padding-box;
+  transition: background-color 0.2s ease, opacity 0.2s ease;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.35);
+}
+
+::-webkit-scrollbar-thumb:active {
+  background: rgba(56, 189, 248, 0.6);
+}
+
+::-webkit-scrollbar-corner {
+  background: transparent !important;
+}
+
+/* Hide the ugly top/bottom browser arrow buttons completely */
+::-webkit-scrollbar-button {
+  display: none !important;
+  width: 0 !important;
+  height: 0 !important;
+}
+
+/* Custom Scrollbar Utility Classes */
+.custom-scrollbar::-webkit-scrollbar {
+  width: 4px;
+  height: 4px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.15);
+  border-radius: 9999px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.35);
+}
+
+/* Hide scrollbar completely when requested */
+.scrollbar-none::-webkit-scrollbar,
+.no-scrollbar::-webkit-scrollbar {
+  display: none !important;
+  width: 0 !important;
+  height: 0 !important;
+}
+
+.scrollbar-none,
+.no-scrollbar {
+  -ms-overflow-style: none !important;
+  scrollbar-width: none !important;
+}
+
+/* Base Body Styles */
+html,
+body {
+  background-color: #000000;
+  color: #ffffff;
+  overflow: hidden;
+  overscroll-behavior: none;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255, 255, 255, 0.18) transparent;
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* Safe area helpers for notched devices (iPhone, iPad, Android) */
+.safe-top {
+  padding-top: env(safe-area-inset-top, 0px) !important;
+}
+
+.safe-bottom {
+  padding-bottom: env(safe-area-inset-bottom, 0px) !important;
+}
+
+.safe-top-calc {
+  padding-top: calc(1.5rem + env(safe-area-inset-top, 0px)) !important;
+}
+
+/* Prevent accidental text zoom on iOS for small tap targets */
+@media (max-width: 640px) {
+  * {
+    touch-action: manipulation;
+  }
+}

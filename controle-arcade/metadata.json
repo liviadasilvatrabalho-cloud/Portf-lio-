@@ -1,0 +1,5 @@
+{
+  "name": "Controle Arcade",
+  "description": "Controle Arcade e Gamepad interativo completo com D-Pad, Joystick 360°, Botões A, B, X, Y, Gatilhos L1/R1 e LEDs de feedback.",
+  "requestFramePermissions": []
+}

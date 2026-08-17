@@ -1,0 +1,5 @@
+{
+  "name": "Pac-Man Arcade",
+  "description": "Jogo Pac-Man clássico e responsivo em estilo arcade com inteligência dos fantasmas, áudio retro sintetizado, placar de liderança e suporte a controles touch e teclado.",
+  "requestFramePermissions": []
+}

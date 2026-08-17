@@ -1,0 +1,38 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Controle Arcade</title>
+    <meta name="description" content="Controle arcade interativo para jogos." />
+    <meta property="og:title" content="Controle Arcade" />
+    <meta property="og:description" content="Controle arcade interativo para jogos." />
+    <meta property="og:type" content="website" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <script>
+      (function() {
+        try {
+          var originalFetch = window.fetch;
+          var fetchValue = originalFetch;
+          Object.defineProperty(window, 'fetch', {
+            get: function() {
+              return fetchValue;
+            },
+            set: function(val) {
+              fetchValue = val;
+            },
+            configurable: true,
+            enumerable: true
+          });
+        } catch (e) {
+          // ignore if already redefined
+        }
+      })();
+    </script>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>
+
