@@ -58,19 +58,24 @@ export const LockScreen: React.FC<LockScreenProps> = ({ onUnlock }) => {
     onUnlock();
   };
 
-  const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === 'Enter' || e.key === ' ') {
-      handleUnlock();
-    }
-  };
+  // Global keyboard listener — Enter or Space to unlock
+  useEffect(() => {
+    const handleGlobalKey = (e: KeyboardEvent) => {
+      if (e.key === 'Enter' || e.key === ' ') {
+        e.preventDefault();
+        e.stopPropagation();
+        onUnlock();
+      }
+    };
+    window.addEventListener('keydown', handleGlobalKey, true);
+    return () => window.removeEventListener('keydown', handleGlobalKey, true);
+  }, [onUnlock]);
 
   return (
     <motion.div
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0, scale: 1.05, filter: 'blur(10px)', transition: { duration: 0.6 } }}
-      onKeyDown={handleKeyDown}
-      tabIndex={0}
       className="fixed inset-0 z-40 flex flex-col items-center justify-between py-8 px-4 sm:py-12 sm:px-6 overflow-y-auto bg-slate-950/40 backdrop-blur-md text-white select-none outline-none"
     >
       {/* Top Clock and Date */}
