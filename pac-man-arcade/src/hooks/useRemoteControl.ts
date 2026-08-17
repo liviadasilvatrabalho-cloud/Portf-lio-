@@ -7,8 +7,21 @@ interface UseRemoteControlOptions {
   onInputReceived?: (action: RemoteInputAction) => void;
 }
 
-// Public WebSocket relay — works from any device, no server needed
-const RELAY_URL = 'wss://socketsbay.com/wss/v2/1/demo/';
+// Relay server URL — set VITE_RELAY_URL env var for production
+// Falls back to same-origin WebSocket or local dev relay
+function getRelayUrl(): string {
+  const envUrl = (import.meta as any).env?.VITE_RELAY_URL;
+  if (envUrl) return envUrl;
+
+  const loc = window.location;
+  if (loc.hostname === 'localhost' || loc.hostname === '127.0.0.1') {
+    const wsProto = loc.protocol === 'https:' ? 'wss:' : 'ws:';
+    return `${wsProto}//${loc.hostname}:5174`;
+  }
+
+  const wsProto = loc.protocol === 'https:' ? 'wss:' : 'ws:';
+  return `${wsProto}//${loc.host}`;
+}
 
 export function useRemoteControl({
   role,
@@ -100,7 +113,7 @@ export function useRemoteControl({
     };
   }, [roomId, role]);
 
-  // ============ WebSocket: cross-device via public relay ============
+  // ============ WebSocket: cross-device via relay server ============
   useEffect(() => {
     if (!roomId) return;
 
@@ -109,48 +122,74 @@ export function useRemoteControl({
 
     const connectWebSocket = () => {
       try {
-        const ws = new WebSocket(`${RELAY_URL}${roomId}`);
+        const relayUrl = getRelayUrl();
+        const ws = new WebSocket(`${relayUrl}?room=${roomId}&role=${role}`);
         socketRef.current = ws;
 
         ws.onopen = () => {
           if (!isMounted) return;
           setIsConnected(true);
-          // Announce presence
-          ws.send(JSON.stringify({ type: 'PING', role, roomId }));
+          ws.send(JSON.stringify({ type: 'JOIN_ROOM', roomId, role }));
         };
 
         ws.onmessage = (event) => {
           if (!isMounted) return;
           try {
             const data = JSON.parse(event.data);
-            const { type, action, payload, role: msgRole } = data;
 
-            if (type === 'INPUT' && role === 'GAME') {
-              if (action && onInputReceivedRef.current) {
-                setControllerConnected(true);
-                onInputReceivedRef.current(action as RemoteInputAction);
-              }
-            } else if (type === 'GAME_STATE' && role === 'CONTROLLER') {
-              if (payload) {
-                setLatestGameState(payload);
-                setHasHost(true);
-              }
-            } else if (type === 'PING') {
-              if (role === 'GAME' && msgRole === 'CONTROLLER') {
-                ws.send(JSON.stringify({ type: 'PONG', role: 'GAME', roomId }));
-                setControllerConnected(true);
-                setControllerCount(prev => Math.max(1, prev));
-              } else if (role === 'CONTROLLER' && msgRole === 'GAME') {
-                ws.send(JSON.stringify({ type: 'PONG', role: 'CONTROLLER', roomId }));
-                setHasHost(true);
-              }
-            } else if (type === 'PONG') {
-              if (role === 'GAME') {
-                setControllerConnected(true);
-                setControllerCount(prev => Math.max(1, prev));
-              } else if (role === 'CONTROLLER') {
-                setHasHost(true);
-              }
+            switch (data.type) {
+              case 'ROOM_JOINED':
+                if (role === 'GAME') {
+                  setControllerConnected(data.controllerConnected || false);
+                  setControllerCount(data.controllerCount || 0);
+                } else {
+                  setHasHost(data.hasHost || false);
+                  if (data.lastGameState) setLatestGameState(data.lastGameState);
+                }
+                break;
+
+              case 'CONTROLLER_STATUS':
+                if (role === 'GAME') {
+                  setControllerConnected(data.connected);
+                  setControllerCount(data.count || (data.connected ? 1 : 0));
+                }
+                break;
+
+              case 'HOST_DISCONNECTED':
+                if (role === 'CONTROLLER') {
+                  setHasHost(false);
+                  setLatestGameState(null);
+                }
+                break;
+
+              case 'INPUT':
+                if (role === 'GAME' && data.action && onInputReceivedRef.current) {
+                  setControllerConnected(true);
+                  onInputReceivedRef.current(data.action as RemoteInputAction);
+                }
+                break;
+
+              case 'GAME_STATE':
+                if (role === 'CONTROLLER' && data.payload) {
+                  setLatestGameState(data.payload);
+                  setHasHost(true);
+                }
+                break;
+
+              case 'PONG':
+                if (role === 'GAME') {
+                  setControllerConnected(true);
+                  setControllerCount(prev => Math.max(1, prev));
+                } else if (role === 'CONTROLLER') {
+                  setHasHost(true);
+                }
+                break;
+
+              case 'PING':
+                if (ws.readyState === WebSocket.OPEN) {
+                  ws.send(JSON.stringify({ type: 'PONG', role, roomId }));
+                }
+                break;
             }
           } catch {
             // ignore parse errors
@@ -160,6 +199,8 @@ export function useRemoteControl({
         ws.onclose = () => {
           if (!isMounted) return;
           setIsConnected(false);
+          setControllerConnected(false);
+          setHasHost(role === 'GAME');
           reconnectTimer = setTimeout(connectWebSocket, 3000);
         };
 

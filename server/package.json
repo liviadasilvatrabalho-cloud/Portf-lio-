@@ -1,0 +1,14 @@
+{
+  "name": "pac-relay",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "start": "node relay-server.js"
+  },
+  "dependencies": {
+    "ws": "^8.21.3"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}

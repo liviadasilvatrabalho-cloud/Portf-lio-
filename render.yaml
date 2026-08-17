@@ -1,0 +1,9 @@
+services:
+  - type: web
+    name: pac-relay
+    runtime: node
+    rootDir: server
+    buildCommand: npm install
+    startCommand: node relay-server.js
+    plan: free
+    healthCheckPath: /health
