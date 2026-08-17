@@ -7,20 +7,21 @@ interface UseRemoteControlOptions {
   onInputReceived?: (action: RemoteInputAction) => void;
 }
 
-// Relay server URL — set VITE_RELAY_URL env var for production
-// Falls back to same-origin WebSocket or local dev relay
-function getRelayUrl(): string {
+function getWsRelayUrl(): string {
+  // 1. Explicit env var (Vercel production → Render relay)
   const envUrl = (import.meta as any).env?.VITE_RELAY_URL;
   if (envUrl) return envUrl;
 
+  // 2. Local dev → local relay on port 5174
   const loc = window.location;
-  if (loc.hostname === 'localhost' || loc.hostname === '127.0.0.1') {
-    const wsProto = loc.protocol === 'https:' ? 'wss:' : 'ws:';
-    return `${wsProto}//${loc.hostname}:5174`;
+  if (loc.hostname === 'localhost' || loc.hostname === '127.0.0.1' || loc.hostname.startsWith('192.168.')) {
+    const proto = loc.protocol === 'https:' ? 'wss:' : 'ws:';
+    return `${proto}//${loc.hostname}:5174`;
   }
 
-  const wsProto = loc.protocol === 'https:' ? 'wss:' : 'ws:';
-  return `${wsProto}//${loc.host}`;
+  // 3. Production fallback → same origin (needs reverse proxy or relay)
+  const proto = loc.protocol === 'https:' ? 'wss:' : 'ws:';
+  return `${proto}//${loc.host}`;
 }
 
 export function useRemoteControl({
@@ -63,7 +64,7 @@ export function useRemoteControl({
     onInputReceivedRef.current = onInputReceived;
   }, [onInputReceived]);
 
-  // ============ BroadcastChannel: same-browser communication ============
+  // ============ BroadcastChannel: same-browser tabs ============
   useEffect(() => {
     if (!roomId) return;
 
@@ -122,7 +123,7 @@ export function useRemoteControl({
 
     const connectWebSocket = () => {
       try {
-        const relayUrl = getRelayUrl();
+        const relayUrl = getWsRelayUrl();
         const ws = new WebSocket(`${relayUrl}?room=${roomId}&role=${role}`);
         socketRef.current = ws;
 
@@ -192,21 +193,17 @@ export function useRemoteControl({
                 break;
             }
           } catch {
-            // ignore parse errors
+            // ignore
           }
         };
 
         ws.onclose = () => {
           if (!isMounted) return;
           setIsConnected(false);
-          setControllerConnected(false);
-          setHasHost(role === 'GAME');
           reconnectTimer = setTimeout(connectWebSocket, 3000);
         };
 
-        ws.onerror = () => {
-          // Will reconnect on close
-        };
+        ws.onerror = () => {};
       } catch {
         reconnectTimer = setTimeout(connectWebSocket, 3000);
       }

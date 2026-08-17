@@ -46,6 +46,40 @@ export const ArcadeCabinet: React.FC<ArcadeCabinetProps> = ({ embedded = false, 
   const [isHighScoresOpen, setIsHighScoresOpen] = useState(false);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [isTouchDevice, setIsTouchDevice] = useState(false);
+  const [hostOrigin, setHostOrigin] = useState(window.location.origin);
+
+  // Detect PC's LAN IP so the phone QR code points to the right address
+  useEffect(() => {
+    const loc = window.location;
+    const isLocal = loc.hostname === 'localhost' || loc.hostname === '127.0.0.1';
+    if (!isLocal) return; // Production (Vercel) — origin is already correct
+
+    const detectIP = async () => {
+      try {
+        const pc = new RTCPeerConnection({ iceServers: [] });
+        pc.createDataChannel('');
+        const offer = await pc.createOffer();
+        await pc.setLocalDescription(offer);
+        await new Promise<void>((resolve) => {
+          const timeout = setTimeout(resolve, 2000);
+          pc.onicecandidate = (e) => {
+            if (e.candidate) {
+              const match = e.candidate.candidate.match(/(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})/);
+              if (match && !match[1].startsWith('127.')) {
+                setHostOrigin(`http://${match[1]}:5173`);
+                clearTimeout(timeout);
+                resolve();
+              }
+            }
+          };
+        });
+        pc.close();
+      } catch {
+        // fallback to localhost
+      }
+    };
+    detectIP();
+  }, []);
 
   // Stable ref for remote input handler (avoids stale closures)
   const handleRemoteInputRef = useRef<(action: string) => void>(() => {});
@@ -88,8 +122,8 @@ export const ArcadeCabinet: React.FC<ArcadeCabinetProps> = ({ embedded = false, 
     onInputReceived: onRemoteInput,
   });
 
-  // QR code URL: uses current origin (works on both dev and Vercel)
-  const controllerUrl = `${window.location.origin}/?controle=true&room=${roomId}`;
+  // QR code URL: local IP for dev, origin for production
+  const controllerUrl = `${hostOrigin}/?controle=true&room=${roomId}`;
 
   // Broadcast game state to controller
   useEffect(() => {
@@ -226,11 +260,11 @@ export const ArcadeCabinet: React.FC<ArcadeCabinetProps> = ({ embedded = false, 
         <div className="w-full grid grid-cols-3 gap-1.5 text-center font-mono text-[8px]">
           <div className="p-1.5 rounded-lg bg-slate-950/50 border border-slate-800">
             <span className="text-yellow-400 font-bold block text-[10px]">1</span>
-            <span className="text-slate-300">Clique Link</span>
+            <span className="text-slate-300">Escaneie QR</span>
           </div>
           <div className="p-1.5 rounded-lg bg-slate-950/50 border border-slate-800">
             <span className="text-yellow-400 font-bold block text-[10px]">2</span>
-            <span className="text-slate-300">Nova Aba</span>
+            <span className="text-slate-300">Clique Link</span>
           </div>
           <div className="p-1.5 rounded-lg bg-slate-950/50 border border-slate-800">
             <span className="text-yellow-400 font-bold block text-[10px]">3</span>
@@ -332,7 +366,7 @@ export const ArcadeCabinet: React.FC<ArcadeCabinetProps> = ({ embedded = false, 
         <p>
           Controles: <span className="text-yellow-400 font-bold">Setas / WASD</span> no teclado
           {' · '}
-          <span className="text-yellow-400 font-bold">Celular</span> copie o link e abra no navegador do celular
+          <span className="text-yellow-400 font-bold">Celular</span> escaneie o QR (PC e celular na mesma Wi-Fi)
         </p>
       </footer>
 
