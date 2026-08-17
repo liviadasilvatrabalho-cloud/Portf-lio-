@@ -125,8 +125,15 @@ export const ArcadeCabinet: React.FC<ArcadeCabinetProps> = ({ embedded = false, 
   // QR code URL: local IP for dev, origin for production
   const controllerUrl = `${hostOrigin}/?controle=true&room=${roomId}`;
 
-  // Broadcast game state to controller
+  // Game state status for display
+  const gameStatus = gameState === 'PLAYING' ? 'CONTROLE ATIVO' : gameState === 'IDLE' ? 'APERTE ENTER PARA START' : gameState === 'GAME_OVER' ? 'FIM DE JOGO' : gameState;
+
+  // Broadcast game state to controller — throttled to avoid flooding WebSocket
+  const lastBroadcastRef = useRef(0);
   useEffect(() => {
+    const now = Date.now();
+    if (now - lastBroadcastRef.current < 200) return; // max 5x/sec
+    lastBroadcastRef.current = now;
     sendGameState({
       score,
       highScore,
