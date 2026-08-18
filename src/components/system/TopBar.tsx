@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Sliders, Wifi, Battery, Volume2, VolumeX, Sparkles, X } from 'lucide-react';
+import { Wifi, Battery, Volume2, VolumeX, Sparkles, X } from 'lucide-react';
 import { AppId, SystemSettings, WindowState } from '../../types';
 import { soundManager } from '../../utils/audio';
 
@@ -214,17 +214,7 @@ export const TopBar: React.FC<TopBarProps> = ({
           )}
         </div>
 
-        {/* Control Center Toggle */}
-        <button
-          onClick={() => {
-            soundManager.playClick();
-            onToggleControlCenter();
-          }}
-          className="hidden sm:flex p-1 rounded-md hover:bg-white/10 text-zinc-300 hover:text-white transition active:scale-95 items-center justify-center"
-          title="Central de Controle"
-        >
-          <Sliders className="w-3.5 h-3.5" />
-        </button>
+        {/* Control Center Toggle - removed */}
 
         {/* Clock & Date Display */}
         <div
