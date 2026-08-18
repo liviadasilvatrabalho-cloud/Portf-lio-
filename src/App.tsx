@@ -32,7 +32,10 @@ export default function App() {
   // Detect controller mode inside component so it works on fresh page loads
   const [isControllerMode] = useState(() =>
     typeof window !== 'undefined' && new URLSearchParams(window.location.search).get('controle') === 'true'
-  );  const [bootState, setBootState] = useState<'locked' | 'unlocked'>('unlocked');
+  );  const [bootState, setBootState] = useState<'locked' | 'unlocked'>(() => {
+    if (typeof window !== 'undefined' && window.innerWidth < 640) return 'unlocked';
+    return 'unlocked';
+  });
   const [settings, setSettings] = useState<SystemSettings>(loadSettings);
   const [isControlCenterOpen, setIsControlCenterOpen] = useState(false);
   const [isSpotlightOpen, setIsSpotlightOpen] = useState(false);
@@ -367,8 +370,8 @@ export default function App() {
         rainDensity={settings.rainDensity}
       />
 
-      {/* 3. System Lock Screen */}
-      {bootState === 'locked' && (
+      {/* 3. System Lock Screen (desktop/tablet only) */}
+      {bootState === 'locked' && screenMode !== 'mobile' && (
         <LockScreen onUnlock={() => setBootState('unlocked')} />
       )}
 

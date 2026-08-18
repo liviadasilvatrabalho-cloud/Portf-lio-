@@ -766,7 +766,16 @@ function drawJakeNightScene(
     let offsetX = 0;
     let offsetY = 0;
 
-    if (canvasRatio > imgRatio) {
+    // On mobile portrait, show full image height (contain-like) instead of cropping
+    const isMobilePortrait = w < 640 && canvasRatio < imgRatio;
+
+    if (isMobilePortrait) {
+      // Contain: show full image height, fill width
+      renderW = h * imgRatio;
+      renderH = h;
+      offsetX = (w - renderW) / 2;
+      offsetY = 0;
+    } else if (canvasRatio > imgRatio) {
       renderH = w / imgRatio;
       offsetY = (h - renderH) / 2;
     } else {
