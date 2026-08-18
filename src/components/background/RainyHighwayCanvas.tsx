@@ -770,7 +770,13 @@ function drawJakeNightScene(
     let offsetX = 0;
     let offsetY = 0;
 
-    if (canvasRatio > imgRatio) {
+    if (w < 640 && canvasRatio < imgRatio) {
+      // Mobile portrait: contain — show full image width, fill height
+      renderW = w;
+      renderH = w / imgRatio;
+      offsetX = 0;
+      offsetY = (h - renderH) / 2;
+    } else if (canvasRatio > imgRatio) {
       renderH = w / imgRatio;
       offsetY = (h - renderH) / 2;
     } else {
