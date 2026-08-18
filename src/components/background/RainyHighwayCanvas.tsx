@@ -101,16 +101,19 @@ export const RainyHighwayCanvas: React.FC<RainyHighwayCanvasProps> = ({
     if (!ctx) return;
 
     let animationFrameId: number;
-    let width = (canvas.width = window.innerWidth);
-    let height = (canvas.height = window.innerHeight);
+    const getVW = () => window.visualViewport?.width ?? window.innerWidth;
+    const getVH = () => window.visualViewport?.height ?? window.innerHeight;
+    let width = (canvas.width = getVW());
+    let height = (canvas.height = getVH());
 
     const handleResize = () => {
       if (!canvas) return;
-      width = canvas.width = window.innerWidth;
-      height = canvas.height = window.innerHeight;
+      width = canvas.width = getVW();
+      height = canvas.height = getVH();
     };
 
     window.addEventListener('resize', handleResize);
+    window.visualViewport?.addEventListener('resize', handleResize);
 
     // Initialize Rain Drops
     const dropCount = graphicQuality === 'low' ? 60 : graphicQuality === 'medium' ? 140 : 250 * (rainDensity / 3);
@@ -271,6 +274,7 @@ export const RainyHighwayCanvas: React.FC<RainyHighwayCanvasProps> = ({
 
     return () => {
       window.removeEventListener('resize', handleResize);
+      window.visualViewport?.removeEventListener('resize', handleResize);
       cancelAnimationFrame(animationFrameId);
     };
   }, [wallpaperMode, graphicQuality, rainDensity]);
@@ -766,16 +770,7 @@ function drawJakeNightScene(
     let offsetX = 0;
     let offsetY = 0;
 
-    // On mobile portrait, show full image height (contain-like) instead of cropping
-    const isMobilePortrait = w < 640 && canvasRatio < imgRatio;
-
-    if (isMobilePortrait) {
-      // Contain: show full image height, fill width
-      renderW = h * imgRatio;
-      renderH = h;
-      offsetX = (w - renderW) / 2;
-      offsetY = 0;
-    } else if (canvasRatio > imgRatio) {
+    if (canvasRatio > imgRatio) {
       renderH = w / imgRatio;
       offsetY = (h - renderH) / 2;
     } else {
