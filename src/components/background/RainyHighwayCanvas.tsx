@@ -761,7 +761,7 @@ function drawJakeNightScene(
   meteors: Meteor[],
   fireflies: Firefly[]
 ) {
-  // 1. Draw Jake Background Image (Cover scaling with parallax offset)
+  // 1. Draw Jake Background Image (Responsive: full image on tablet/mobile, cover on desktop)
   if (bgImg && bgImg.complete) {
     const imgRatio = bgImg.width / bgImg.height;
     const canvasRatio = w / h;
@@ -770,12 +770,21 @@ function drawJakeNightScene(
     let offsetX = 0;
     let offsetY = 0;
 
-    if (w < 640 && canvasRatio < imgRatio) {
-      // Mobile portrait: contain — show full image width, fill height
-      renderW = w;
-      renderH = w / imgRatio;
-      offsetX = 0;
-      offsetY = (h - renderH) / 2;
+    if (w < 1024) {
+      // Tablet & Mobile: CONTAIN — show the entire image without cropping
+      if (imgRatio > canvasRatio) {
+        // Image is wider than canvas ratio → fit by width, bars top/bottom
+        renderW = w;
+        renderH = w / imgRatio;
+        offsetX = 0;
+        offsetY = (h - renderH) / 2;
+      } else {
+        // Image is taller than canvas ratio → fit by height, bars left/right
+        renderH = h;
+        renderW = h * imgRatio;
+        offsetX = (w - renderW) / 2;
+        offsetY = 0;
+      }
     } else if (canvasRatio > imgRatio) {
       renderH = w / imgRatio;
       offsetY = (h - renderH) / 2;
@@ -784,8 +793,18 @@ function drawJakeNightScene(
       offsetX = (w - renderW) / 2;
     }
 
+    // Fill any letterbox bars with the night gradient so it blends nicely
+    if (w < 1024) {
+      const bgGrad = ctx.createLinearGradient(0, 0, 0, h);
+      bgGrad.addColorStop(0, '#040b1e');
+      bgGrad.addColorStop(0.5, '#0b203c');
+      bgGrad.addColorStop(1, '#063025');
+      ctx.fillStyle = bgGrad;
+      ctx.fillRect(0, 0, w, h);
+    }
+
     ctx.save();
-    // Parallax slight offset
+    // Parallax slight offset (kept subtle; no mouse on tablet/mobile so camX/Y stay ~0)
     const parallaxX = camX * 0.15;
     const parallaxY = camY * 0.15;
     ctx.drawImage(bgImg, offsetX + parallaxX - 10, offsetY + parallaxY - 10, renderW + 20, renderH + 20);
