@@ -220,7 +220,7 @@ export const TopBar: React.FC<TopBarProps> = ({
             soundManager.playClick();
             onToggleControlCenter();
           }}
-          className="p-1 rounded-md hover:bg-white/10 text-zinc-300 hover:text-white transition active:scale-95 flex items-center justify-center"
+          className="hidden sm:flex p-1 rounded-md hover:bg-white/10 text-zinc-300 hover:text-white transition active:scale-95 items-center justify-center"
           title="Central de Controle"
         >
           <Sliders className="w-3.5 h-3.5" />
