@@ -215,7 +215,7 @@ export const ArcadeCabinet: React.FC<ArcadeCabinetProps> = ({ embedded = false, 
 
   // QR Code Panel (desktop/tablet side panel)
   const qrPanel = (
-    <div className="hidden lg:flex flex-col items-center gap-3 w-56 shrink-0">
+    <div className="hidden lg:flex flex-col items-center gap-3 w-56 shrink-0 lg:sticky lg:top-4">
       <div className="w-full rounded-2xl border-2 border-yellow-400/60 bg-slate-900/90 p-4 shadow-xl shadow-yellow-500/10 flex flex-col items-center gap-3">
         <div className="flex items-center gap-2 text-yellow-400 font-mono text-xs font-bold">
           <QrCode className="w-4 h-4" />
@@ -285,27 +285,31 @@ export const ArcadeCabinet: React.FC<ArcadeCabinetProps> = ({ embedded = false, 
   return (
     <div className={`flex flex-col items-center justify-center bg-slate-950 p-2 sm:p-6 text-white selection:bg-yellow-400 selection:text-slate-950 ${embedded ? 'rounded-3xl' : 'min-h-screen'}`}>
       {/* HEADER */}
-      <header className="mb-4 text-center w-full max-w-4xl">
-        <div className="inline-flex items-center space-x-2 rounded-2xl border-2 border-yellow-400/80 bg-slate-900/90 px-6 py-2 shadow-xl shadow-yellow-500/20">
-          <Gamepad2 className="w-7 h-7 text-yellow-400 animate-pulse" />
-          <h1 className="font-mono text-2xl sm:text-3xl font-black tracking-widest text-transparent bg-clip-text bg-gradient-to-r from-yellow-300 via-amber-400 to-yellow-500 drop-shadow-[0_0_12px_rgba(250,204,21,0.6)]">
-            PAC-MAN CLÁSSICO
-          </h1>
+      <header className="mb-3 w-full max-w-4xl">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            {onBack && (
+              <button
+                type="button"
+                onClick={onBack}
+                className="flex items-center gap-1 text-xs font-bold text-slate-400 hover:text-white transition-colors cursor-pointer"
+              >
+                <ArrowLeft className="w-4 h-4" />
+                Voltar
+              </button>
+            )}
+            <div className="flex items-center space-x-2 rounded-2xl border-2 border-yellow-400/80 bg-slate-900/90 px-5 py-1.5 shadow-xl shadow-yellow-500/20">
+              <Gamepad2 className="w-5 h-5 text-yellow-400 animate-pulse" />
+              <h1 className="font-mono text-xl sm:text-2xl font-black tracking-widest text-transparent bg-clip-text bg-gradient-to-r from-yellow-300 via-amber-400 to-yellow-500 drop-shadow-[0_0_12px_rgba(250,204,21,0.6)]">
+                PAC-MAN CLÁSSICO
+              </h1>
+            </div>
+          </div>
         </div>
-        {onBack && (
-          <button
-            type="button"
-            onClick={onBack}
-            className="mt-3 inline-flex items-center gap-1.5 text-xs font-bold text-slate-400 hover:text-white transition-colors cursor-pointer"
-          >
-            <ArrowLeft className="w-4 h-4" />
-            Voltar ao Arcade
-          </button>
-        )}
       </header>
 
       {/* MAIN: GAME + QR SIDE PANEL */}
-      <div className="flex flex-col lg:flex-row items-start justify-center gap-4 w-full max-w-4xl">
+      <div className="flex flex-col lg:flex-row items-start lg:items-start justify-center gap-4 w-full max-w-4xl">
         {/* GAME */}
         <main className="relative flex flex-col items-center w-full lg:flex-1 min-w-0 rounded-3xl border-4 border-indigo-900 bg-slate-900/90 p-3 sm:p-5 shadow-[0_0_50px_rgba(49,46,129,0.5)] backdrop-blur-md">
           <ScoreBoard score={score} highScore={highScore} lives={lives} level={level} />
